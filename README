@@ -76,6 +76,7 @@ Other Resources
 ~~~~~~~~~~~~~~~
 
  * Python Cheeseshop page: http://pypi.python.org/pypi/django-crowdsourcing
- * Source code repository and ticket tracker: http://code.google.com/p/django-crowdsourcing/  
+ * NEW Source code repository and ticket tracker (as of 1.1.35): https://github.com/wnyc/django-crowdsourcing
+ * OLD Source code repository and ticket tracker: http://code.google.com/p/django-crowdsourcing/  
  * Discussion group: http://groups.google.com/group/django-crowdsourcing/
  
