@@ -330,6 +330,17 @@ class Question(models.Model):
             'Use one option per line. On a live survey you can modify the '
             'order of these options. You can, at your own risk, add new '
             'options, but you must not change or remove options.'))
+    allow_arbitrary = models.BooleanField(
+        default=False,
+        help_text=_('Applicable to multiple choice or checkbox list type questions. '
+            'If this option is selected then another option is automatically '
+            'created with a text box that allows the respondent to enter'
+            'arbitrary data'))
+    arbitrary_label = models.TextField(
+        default="Other value:",
+        help_text=_('This is the option label that will appear next to the text box '
+            'for arbitrary text entry. This is only applicable if Allow Arbitrary is '
+            'enabled.'))
     map_icons = models.TextField(
         blank=True,
         default='',

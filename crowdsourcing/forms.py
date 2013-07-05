@@ -19,6 +19,7 @@ from django.forms import (
     Select,
     Textarea,
     ValidationError,
+    TextInput,
     )
 from django.forms.forms import BoundField
 from django.forms.formsets import BaseFormSet
@@ -182,14 +183,23 @@ class BaseOptionAnswer(BaseAnswerForm):
                  mark_safe(x)))
         if not self.question.required and not isinstance(self, OptionCheckbox):
             choices = [('', '---------',)] + choices
+        if self.question.allow_arbitrary:
+            choices.append(('arbitrary_answer',self.question.arbitrary_label))
         self.fields['answer'].choices = choices
+        if self.question.allow_arbitrary:
+            choice_control_name = self.add_prefix('answer')
+            widget = TextInput(attrs={'arb_boundto':choice_control_name,'arb_choice':'arbitrary_answer','class':'arbitrary_textbox'})
+            self.fields['answer_arbitrary'] = CharField(label="", widget=widget, required=False)
 
     def clean_answer(self):
         key = self.cleaned_data['answer']
         if not key and self.fields['answer'].required:
             raise ValidationError, _('This field is required.')
         if not isinstance(key, (list, tuple)):
-            key = (key,)
+            key = [key,]
+        if self.question.allow_arbitrary and 'arbitrary_answer' in key:
+            where = key.index('arbitrary_answer')
+            key[where] = self._raw_value('answer_arbitrary')
         return key
 
     def save(self, commit=True):
