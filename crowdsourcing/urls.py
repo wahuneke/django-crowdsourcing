@@ -1,6 +1,7 @@
 from __future__ import absolute_import
+import logging
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls  import patterns, url, include
 
 from .views import (allowed_actions,
                     embeded_survey_questions,
@@ -14,8 +15,18 @@ from .views import (allowed_actions,
                     survey_detail,
                     survey_report)
 
+try:
+    import crowdsourcing.tastypiesupport
+    tastypie_api = include(crowdsourcing.tastypiesupport)
+except ImportError:
+    logging.warn('no tastypie support available (API disabled)')
+    from django.views.defaults import page_not_found
+    tastypie_api = page_not_found
+
 urlpatterns = patterns(
     "",
+    url(r'^api/', tastypie_api),
+
     url(r'^submissions/$',
         submissions,
         {"format": "json"},
