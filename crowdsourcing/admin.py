@@ -288,8 +288,18 @@ class SurveyReportAdmin(admin.ModelAdmin):
         ('sort_by_rating','display_the_filters','limit_results_to','featured','display_individual_results',),
     )
     class Media:
-        js = ("crowdsourcing/admin.js",)
-        css = {'all': ("crowdsourcing/admin.css",),
+        js = (
+            "crowdsourcing/jquery-1.10.1.min.js",
+            "crowdsourcing/jquery-ui/jquery-ui-1.10.3.js",
+            "crowdsourcing/jquery.tagit/js/tag-it.min.js",
+            "crowdsourcing/admin.js",
+        )
+        css = {
+            'all': (
+                "crowdsourcing/admin.css",
+                "crowdsourcing/jquery.tagit/css/jquery.tagit.css",
+                "crowdsourcing/jquery-ui/jquery-ui.min.css",
+            ),
         }
 
 
