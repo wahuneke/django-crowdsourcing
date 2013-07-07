@@ -1,0 +1,21 @@
+div.field-annotation textarea,
+div.field-summary textarea {
+    height: 3em;
+}
+
+div.field-tease textarea,
+div.field-description textarea,
+div.field-thanks textarea,
+div.field-tease textarea,
+div.field-description textarea,
+div.field-thanks textarea
+{
+    height: 5em;
+    width: 200px !important;
+}
+
+div.field-email textarea {
+    height: 3em;
+    width: 200px !important;
+}
+
