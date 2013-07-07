@@ -248,3 +248,48 @@ function queryParametersAsLookup() {
   }
   return variables;
 }
+
+/*
+Some multiple choice or multicheckbox questions allow aribtrary text entry
+These need some fancy wiring to make the arbitrary box only show up
+when appropriate
+ */
+$(function() {
+  $('.arbitrary_textbox').each(function(index, arb_txtbox) {
+      choice_value = arb_txtbox.getAttribute('arb_choice');
+      choice_control_name = arb_txtbox.getAttribute('arb_boundto');
+      // consider updating the state of our textbox whenever the bound choice control
+      // changes value
+      hdl = function() {
+          // is this a selectbox?
+          node = this.nodeName;
+          val = $(this).val();
+          // handle combo box and radio box similarly
+          if (node == "SELECT") {//} ) {
+              if (val == choice_value)
+                $(arb_txtbox).show();
+              else
+                $(arb_txtbox).hide();
+          }
+          else if (node == "INPUT" && this.type == "radio") {
+              // it's a radiobutton
+              if (val == choice_value && $(this).is(":checked"))
+                  $(arb_txtbox).show();
+              else
+                  $(arb_txtbox).hide();
+          }
+          else {
+              // it's a checkbox
+              if (val == choice_value) {
+                  if ($(this).is(":checked"))
+                    $(arb_txtbox).show();
+                  else
+                    $(arb_txtbox).hide();
+              }
+          }
+      }
+      $(arb_txtbox).siblings().find('input[name="'+choice_control_name+'"]').change(hdl).trigger('change');
+      $(arb_txtbox).siblings('[name="'+choice_control_name+'"]').change(hdl).trigger('change');
+
+  });
+});
