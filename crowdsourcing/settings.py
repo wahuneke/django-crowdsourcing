@@ -13,6 +13,7 @@ IMAGE_UPLOAD_PATTERN = getattr(_gs,
                                'CROWDSOURCING_IMAGE_UPLOAD_PATTERN',
                                'crowdsourcing/images/%Y/%m/%d')
 
+FLICKR_HIDE = getattr(_gs, "CROWDSOURCING_FLICKR_HIDE", False)
 
 FLICKR_API_KEY = getattr(_gs, 'CROWDSOURCING_FLICKR_API_KEY', '')
 
@@ -112,6 +113,8 @@ GOOGLE_MAPS_API_KEY = getattr(
     _gs,
     'CROWDSOURCING_GOOGLE_MAPS_API_KEY',
     '')
+
+MAPS_HIDE = getattr(_gs, "CROWDSOURCING_MAPS_HIDE", False)
 
 
 # A dictionary of extra thumbnails for Submission.image_answer, which is a sorl

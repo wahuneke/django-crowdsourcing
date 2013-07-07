@@ -12,7 +12,7 @@ from .models import (Question, Survey, Answer, Submission,
                      SurveyReport, SurveyReportDisplay, OPTION_TYPE_CHOICES,
                      SURVEY_DISPLAY_TYPE_CHOICES,
                      SURVEY_AGGREGATE_TYPE_CHOICES, FORMAT_CHOICES)
-
+from .settings import *
 
 try:
     from .flickrsupport import get_group_names, get_group_id
@@ -56,6 +56,20 @@ class QuestionInline(admin.StackedInline):
     model = Question
     extra = 3
     form = QuestionForm
+    fields = [
+        ('question','fieldname',),
+        ('label','help_text',),
+        ('required','order',),
+        ('option_type','options',),
+        ('allow_arbitrary','arbitrary_label'),
+        'map_icons',
+        ('answer_is_public', 'use_as_filter',),
+    ]
+
+    def __init__(self, parent_model, admin_site):
+        super(QuestionInline, self).__init__(parent_model, admin_site)
+        if MAPS_HIDE:
+            remove_by_lambda(self.fields, lambda x: x=='map_icons')
 
 
 def _flickr_group_choices():
@@ -70,10 +84,12 @@ class SurveyAdminForm(ModelForm):
         super(SurveyAdminForm, self).__init__(*args, **kwargs)
         qs = SurveyReport.objects.filter(survey=self.instance)
         self.fields['default_report'].queryset = qs
-        self.fields['flickr_group_name'].widget = Select(choices=_flickr_group_choices())
+        if 'flickr_group_name' in self.fields:
+            self.fields['flickr_group_name'].widget = Select(choices=_flickr_group_choices())
 
     class Meta:
         model = Survey
+
 
     def clean_flickr_group_name(self):
         group = self.cleaned_data.get('flickr_group_name', "")
@@ -120,7 +136,23 @@ class SurveyAdmin(admin.ModelAdmin):
     list_filter = ('survey_date', 'is_published', 'site')
     date_hierarchy = 'survey_date'
     inlines = [QuestionInline]
-
+    fields = [
+        ('title', 'slug','site','default_report'),
+        ('tease','description','thanks',),
+        ('require_login','allow_multiple_submissions','moderate_submissions','allow_comments','allow_voting',),
+        ('starts_at','ends_at',),
+        ('archive_policy','is_published',),
+        'email',
+        'flickr_group_name',
+    ]
+    class Media:
+        js = ("crowdsourcing/admin.js",)
+        css = {'all': ("crowdsourcing/admin.css",),
+        }
+    def __init__(self, parent_model, admin_site):
+        super(SurveyAdmin, self).__init__(parent_model, admin_site)
+        if FLICKR_HIDE:
+            remove_by_lambda(self.fields, lambda x: x=='flickr_group_name')
 
 admin.site.register(Survey, SurveyAdmin)
 
@@ -195,34 +227,72 @@ class SurveyReportDisplayInlineForm(ModelForm):
 class SurveyReportDisplayInline(admin.StackedInline):
     form = SurveyReportDisplayInlineForm
 
-    fieldsets = (
+    fieldsets = [
         (None,
             {'fields': (
-                'display_type',
-                'fieldnames',
+                ('display_type', 'fieldnames',),
                 'annotation',
-                'order',)}),
+                'order',),
+             #'classes': ('collapse',),
+            }),
         ('Pie, Line, and Bar Charts',
             {'fields': (
                 'aggregate_type',
-                'x_axis_fieldname',)}),
+                'x_axis_fieldname',),
+             'classes': ('collapse',),
+            }),
         ('Slideshow',
-            {'fields': ('caption_fields',)}),
+            {'fields': ('caption_fields',),
+             'classes': ('collapse',),
+            }),
         ('Maps',
             {'fields': (
                 'limit_map_answers',
                 'map_center_latitude',
                 'map_center_longitude',
-                'map_zoom',)}))
+                'map_zoom',),
+             'classes': ('collapse',),
+            })]
 
     model = SurveyReportDisplay
     extra = 3
+
+    def __init__(self, parent_model, admin_site):
+        super(SurveyReportDisplayInline, self).__init__(parent_model, admin_site)
+        def find(l,func):
+            """
+            return the index of the first item in list (l) for which
+            the function (func) is True
+            return -1 if not found
+            """
+            for i,item in enumerate(l):
+                if func(item):
+                    return i
+            return -1
+
+        if MAPS_HIDE:
+            maps_idx = find(self.fieldsets, lambda x: x[0]=="Maps")
+            if maps_idx >= 0:
+                self.fieldsets.pop(maps_idx)
+        if FLICKR_HIDE:
+            maps_idx = find(self.fieldsets, lambda x: x[0]=="Slideshow")
+            if maps_idx >= 0:
+                self.fieldsets.pop(maps_idx)
 
 
 class SurveyReportAdmin(admin.ModelAdmin):
     list_display = ('__unicode__', 'slug', 'survey',)
     prepopulated_fields = {'slug': ('title',)}
     inlines = [SurveyReportDisplayInline]
+    fields = (
+        ('survey','title','slug',),
+        'summary',
+        ('sort_by_rating','display_the_filters','limit_results_to','featured','display_individual_results',),
+    )
+    class Media:
+        js = ("crowdsourcing/admin.js",)
+        css = {'all': ("crowdsourcing/admin.css",),
+        }
 
 
 admin.site.register(SurveyReport, SurveyReportAdmin)

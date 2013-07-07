@@ -995,7 +995,8 @@ class SurveyReportDisplay(models.Model):
                     "for things like ratings, 'Sum' is good for totals, and "
                     "'Count' is good for a show of hands."),
         default=SURVEY_AGGREGATE_TYPE_CHOICES.DEFAULT)
-    fieldnames = models.TextField(
+    fieldnames = models.CharField(
+        max_length=1000,
         blank=True,
         help_text=_("Pull these values from Survey -> Questions -> Fieldname. "
                     "Separate by spaces. These are the y-axes of bar and line "
