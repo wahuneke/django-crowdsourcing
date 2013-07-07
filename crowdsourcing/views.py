@@ -7,6 +7,7 @@ from itertools import count
 import logging
 import smtplib
 from xml.dom.minidom import Document
+#from Tools.Scripts.classfix import rep
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -36,7 +37,8 @@ from .models import (
     SurveyReportDisplay,
     extra_from_filters,
     get_all_answers,
-    get_filters)
+    #get_filters
+    )
 from .jsonutils import dump, dumps, datetime_to_string
 
 from .util import ChoiceEnum, get_function, get_session, get_user
@@ -575,13 +577,119 @@ def _default_report(survey, is_staff):
     return report
 
 
-def survey_report(request, slug, report='', page=None):
-    templates = ['crowdsourcing/survey_report_%s.html' % slug,
+class SurveyReportView(django.views.generic.TemplateView):
+    """
+    Show report for a survey(s)
+    """
+
+    def _get_report(self):
+        """
+        Override this for other views that discover report in other way
+        """
+        return get_object_or_404(SurveyReport, slug=self.kwargs['slug'])
+
+    def get_template_names(self):
+        slug = self._get_report().slug
+        return ['crowdsourcing/survey_report_%s.html' % slug,
                  'crowdsourcing/survey_report.html']
-    result = _survey_report(request, slug, report, page, templates)
-    if isinstance(result, HttpResponse):
-        return result
-    return HttpResponse(result)
+
+    def _get_surveys(self, report):
+        """
+        Get a map of the survey(s) for this report.  The returned map will be
+        a map from survey slug->survey object.
+
+        @type report SurveyReport
+        """
+        survey_pairs = [(survey.slug, survey) for survey in report.survey.all()]
+        return dict(survey_pairs)
+
+    def get_context_data(self, **kwargs):
+        user_is_staff = self.request.user.is_staff
+        report_obj = self._get_report()
+        page = self.kwargs.get('page', 1)
+        try:
+            page = int(page)
+        except ValueError:
+            raise Http404
+
+        context = dict()
+        context['surveys'] = surveys = self._get_surveys(report_obj)
+        context['is_public'] = all([survey.is_live and survey.can_have_public_submissions() for survey in surveys.values()])
+        if not context['is_public'] and not user_is_staff:
+            raise Http404
+        context['archive_fields'] = self._get_archive_fields(surveys)
+        context['filters'] = self._get_filters(surveys)
+        if not report_obj.display_individual_results:
+            context['submissions'] = Submission.objects.none()
+        else:
+            context['submissions'] = self._get_submissions(surveys, not user_is_staff, report_obj)
+        context['fields'] = self._get_fields(surveys,not user_is_staff)
+        all_submissions = reduce(lambda a,b:a+b, context['submissions'].values())
+        paginator, page_obj = paginate_or_404(all_submissions, page)
+        context['paginator'] = paginator
+        context['page_obj'] = page_obj
+
+        context['page_answers'] = get_all_answers(
+            page_obj.object_list,
+            include_private_questions=user_is_staff)
+
+        context['pages_to_link'] = pages_to_link_from_paginator(page, paginator)
+
+        context['display_individual_results'] = all([
+            report_obj.display_individual_results,
+            context['archive_fields'] or (user_is_staff and context['fields'])])
+
+        return context
+
+
+    def _get_archive_fields(self, surveys):
+        """
+        Get map of archive fields.  survey slug=>archive fields list
+        @type surveys dict(String, Survey)
+        """
+        pairs = [(survey.slug, list(survey.get_public_archive_fields())) for survey in surveys.values()]
+        return dict(pairs)
+
+    def _get_survey_submissions(self, survey, public_only, report_obj):
+        if public_only:
+            submissions = survey.public_submissions()
+        else:
+            submissions = survey.submission_set.all()
+        id_field = "crowdsourcing_submission.id"
+        submissions = extra_from_filters(submissions,
+                                         id_field,
+                                         survey,
+                                         self.request.GET)
+        # If you want to sort based on rating, wire it up here.
+        if crowdsourcing_settings.PRE_REPORT:
+            pre_report = get_function(crowdsourcing_settings.PRE_REPORT)
+            submissions = pre_report(
+                submissions=submissions,
+                report=report_obj,
+                request=self.request)
+        if report_obj.featured:
+            submissions = submissions.filter(featured=True)
+        if report_obj.limit_results_to:
+            submissions = submissions[:report_obj.limit_results_to]
+
+        return submissions
+
+    def _get_submissions(self, surveys, public_only, report_obj):
+        pairs = [(survey.slug, self._get_survey_submissions(survey, public_only, report_obj)) for survey in surveys.values()]
+        return dict(pairs)
+
+    def _get_fields(self, surveys, public_only=True):
+        if public_only:
+            pairs = [(survey.slug, list(survey.get_public_fields())) for survey in surveys.values()]
+        else:
+            pairs = [(survey.slug, list(survey.get_fields())) for survey in surveys.values()]
+        return dict(pairs)
+
+    def _get_filters(self, surveys):
+        pairs = [(survey.slug, survey.get_filters(self.request.GET)) for survey in surveys.values()]
+        return dict(pairs)
+
+
 
 
 @api_response_decorator(format='html')
@@ -626,7 +734,7 @@ def _survey_report(request, slug, report, page, templates):
         archive_fields = list(survey.get_public_archive_fields())
         submissions = survey.public_submissions()
         fields = list(survey.get_public_fields())
-    filters = get_filters(survey, request.GET)
+    filters = survey.get_filters(request.GET)
 
     id_field = "crowdsourcing_submission.id"
     if not report_obj.display_individual_results:

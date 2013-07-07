@@ -13,7 +13,9 @@ from .views import (allowed_actions,
                     submission,
                     submission_for_map,
                     survey_detail,
-                    survey_report)
+                    #survey_report,
+                    SurveyReportView,
+                    )
 
 try:
     import crowdsourcing.tastypiesupport
@@ -58,44 +60,47 @@ urlpatterns = patterns(
         location_question_map,
         name="location_question_map"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/$',
+    url(r'^s/(?P<slug>[-a-z0-9_]+)/$',
         survey_detail,
         name="survey_detail"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/api/allowed_actions/$',
+    url(r'^s/(?P<slug>[-a-z0-9_]+)/api/allowed_actions/$',
         allowed_actions,
         name="allowed_actions"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/api/questions/$',
+    url(r'^s/(?P<slug>[-a-z0-9_]+)/api/questions/$',
         questions,
         name="questions"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/api/embeded_survey_questions/$',
+    url(r'^s/(?P<slug>[-a-z0-9_]+)/api/embeded_survey_questions/$',
         embeded_survey_questions,
         name="embeded_survey_questions"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/api/report/$',
+    # Survey reports
+    # --------------
+
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/api/report/$',
         embeded_survey_report,
         {"report": ""},
         name="embeded_survey_report_default"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/api/report/(?P<report>[-a-z0-9_]+)/$',
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/api/report/(?P<report>[-a-z0-9_]+)/$',
         embeded_survey_report,
         name="embeded_survey_report"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/report/$',
-        survey_report,
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/report/$',
+        SurveyReportView.as_view(),
         name="survey_default_report_page_1"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/report/(?P<page>\d+)/$',
-        survey_report,
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/report/(?P<page>\d+)/$',
+        SurveyReportView.as_view(),
         name="survey_default_report"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/(?P<report>[-a-z0-9_]+)/$',
-        survey_report,
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/(?P<report>[-a-z0-9_]+)/$',
+        SurveyReportView.as_view(),
         name="survey_report_page_1"),
 
-    url(r'^(?P<slug>[-a-z0-9_]+)/(?P<report>[-a-z0-9_]+)/(?P<page>\d+)/$',
-        survey_report,
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/(?P<report>[-a-z0-9_]+)/(?P<page>\d+)/$',
+        SurveyReportView.as_view(),
         name="survey_report")
     )

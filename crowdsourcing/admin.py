@@ -279,7 +279,7 @@ class SurveyReportDisplayInline(admin.StackedInline):
 
 
 class SurveyReportAdmin(admin.ModelAdmin):
-    list_display = ('__unicode__', 'slug', 'survey',)
+    list_display = ('__unicode__', 'slug',)
     prepopulated_fields = {'slug': ('title',)}
     inlines = [SurveyReportDisplayInline]
     fields = (

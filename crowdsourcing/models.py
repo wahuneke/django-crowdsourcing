@@ -164,6 +164,10 @@ class Survey(models.Model):
                     report_url=report_url,
                     questions=[q.to_jsondata() for q in questions])
 
+    def get_filters(self, request_data):
+        fields = list(self.get_public_fields())
+        return [Filter(f, request_data) for f in fields if f.is_filterable]
+
     def save(self, **kwargs):
         self.survey_date = self.starts_at.date()
         self.flickr_group_id = ""
@@ -489,9 +493,6 @@ class Filter:
             self.location_value = get_val("_location")
 
 
-def get_filters(survey, request_data):
-    fields = list(survey.get_public_fields())
-    return [Filter(f, request_data) for f in fields if f.is_filterable]
 
 
 def extra_from_filters(set, submission_id_column, survey, request_data):
@@ -503,7 +504,7 @@ def extra_from_filters(set, submission_id_column, survey, request_data):
 
 def extra_clauses_from_filters(submission_id_column, survey, request_data):
     return_value = []
-    for filter in get_filters(survey, request_data):
+    for filter in survey.get_filters(request_data):
         loc = filter.location_value and filter.within_value
         if filter.value or filter.from_value or filter.to_value or loc:
             try:
@@ -908,7 +909,7 @@ class SurveyReport(models.Model):
     options, which each take a display type, a series of fieldnames,
     and an annotation.  It also has article-like fields of its own.
     """
-    survey = models.ForeignKey(Survey)
+    survey = models.ManyToManyField(Survey)
     title = models.CharField(
         max_length=50,
         blank=True,
@@ -916,6 +917,7 @@ class SurveyReport(models.Model):
                     "the survey title as a default."))
     slug = models.CharField(
         max_length=50,
+        unique=True,
         help_text=_("The default is the description of the survey."))
     # some text at the beginning
     summary = models.TextField(blank=True)
@@ -969,7 +971,6 @@ class SurveyReport(models.Model):
                                              'report': self.slug})
 
     class Meta:
-        unique_together = (('survey', 'slug'),)
         ordering = ('title',)
 
     def get_title(self):
@@ -1006,11 +1007,13 @@ class SurveyReportDisplay(models.Model):
         blank=True,
         help_text=_("Pull these values from Survey -> Questions -> Fieldname. "
                     "Separate by spaces. These are the y-axes of bar and line "
-                    "charts."))
+                    "charts.  For each field name, put the survey slug in front of "
+                    "it followed by a period."))
     x_axis_fieldname = models.CharField(
         blank=True,
         help_text=_("This only applies to bar and line charts. Use only 1 "
-                    "field."),
+                    "field.  Put survey slug in front of fieldname followed by "
+                    "a period."),
         max_length=80)
     annotation = models.TextField(blank=True)
     limit_map_answers = models.IntegerField(
@@ -1018,7 +1021,8 @@ class SurveyReportDisplay(models.Model):
         blank=True,
         help_text=_('Google maps gets pretty slow if you add too many points. '
                     'Use this field to limit the number of points that '
-                    'display on the map.'))
+                    'display on the map. Be sure to qualify the field name '
+                    'with the slug of the survey it\'s in, followed by a period.'))
     map_center_latitude = models.FloatField(
         blank=True,
         null=True,
@@ -1036,7 +1040,8 @@ class SurveyReportDisplay(models.Model):
         blank=True,
         help_text=_('The answers to these questions will appear as '
                     'captions below their corresponding slides. Separate by '
-                    'spaces.'))
+                    'spaces. Be sure to qualify the field name '
+                    'with the slug of the survey it\'s in, followed by a period.'))
 
     if PositionField:
         order = PositionField(collection=('report',))
@@ -1073,6 +1078,7 @@ class SurveyReportDisplay(models.Model):
         names = fieldnames.split(" ")
         if fields:
             return [f for f in fields if f.fieldname in names]
+        #TODO: run get_public_fields for all the surveys, add survey slug string on each and call it good
         return self.get_report().survey.get_public_fields(names)
 
     def get_report(self):
