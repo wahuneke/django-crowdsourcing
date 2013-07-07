@@ -294,6 +294,8 @@ def survey_detail(request, slug):
         forms = forms_for_survey(survey, request)
     elif need_login:
         forms = ()
+        if crowdsourcing_settings.LOGIN_AUTOREDIRECT:
+            return HttpResponseRedirect(_login_url(request))
     elif survey.can_have_public_submissions():
         return _survey_results_redirect(request, survey)
     else: # Survey is closed with private results.

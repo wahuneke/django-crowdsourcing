@@ -92,6 +92,10 @@ OEMBED_EXPAND = getattr(_gs, 'CROWDSOURCING_OEMBED_EXPAND', '')
 # that requires a login?
 LOGIN_VIEW = getattr(_gs, 'CROWDSOURCING_LOGIN_VIEW', '')
 
+# User can specify that they'd like login required surveys to automatically go to
+# the login page if necessary (default behavior is to render the survey detail template
+# but with no forms)
+LOGIN_AUTOREDIRECT = getattr(_gs, 'CROWDSOURCING_LOGIN_AUTOREDIRECT', False)
 
 # youtube has a lot of characters in their ids now so use [^&]
 # youtube also likes to add additional query arguments, so no trailing $
