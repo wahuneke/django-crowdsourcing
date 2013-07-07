@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.forms import ModelForm, ValidationError
 from django.forms.widgets import Select
 from django.utils.translation import ugettext_lazy as _
+from crowdsourcing.util import remove_by_lambda
 
 from .models import (Question, Survey, Answer, Submission,
                      SurveyReport, SurveyReportDisplay, OPTION_TYPE_CHOICES,
@@ -271,13 +272,10 @@ class SurveyReportDisplayInline(admin.StackedInline):
             return -1
 
         if MAPS_HIDE:
-            maps_idx = find(self.fieldsets, lambda x: x[0]=="Maps")
-            if maps_idx >= 0:
-                self.fieldsets.pop(maps_idx)
+            remove_by_lambda(self.fieldsets, lambda x: x[0]=="Maps")
+
         if FLICKR_HIDE:
-            maps_idx = find(self.fieldsets, lambda x: x[0]=="Slideshow")
-            if maps_idx >= 0:
-                self.fieldsets.pop(maps_idx)
+            remove_by_lambda(self.fieldsets, lambda x: x[0]=="Slideshow")
 
 
 class SurveyReportAdmin(admin.ModelAdmin):

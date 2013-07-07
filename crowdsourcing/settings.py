@@ -77,6 +77,7 @@ if SURVEY_EMAIL_FROM is None:
 if SURVEY_EMAIL_FROM is None:
     SURVEY_EMAIL_FROM = 'donotreply@donotreply.com'
 
+SURVEY_QTYPE_DISABLE = getattr(_gs, 'CROWDSOURCING_QTYPE_DISABLE', ())
 
 # This site is for the notification emails that crowdsourcing sends when
 # a user enters a survey. The default is the site the user entered the survey

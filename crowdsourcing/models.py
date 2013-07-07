@@ -28,9 +28,9 @@ from django.utils.safestring import mark_safe
 
 from .fields import ImageWithThumbnailsField
 from .geo import get_latitude_and_longitude
-from .util import ChoiceEnum
+from .util import ChoiceEnum, remove_by_lambda
 from . import settings as local_settings
-
+from .settings import *
 
 try:
     from positions.fields import PositionField
@@ -51,24 +51,30 @@ ARCHIVE_POLICY_CHOICES = ChoiceEnum(('immediate',
                                      'post-close',
                                      'never'))
 
+qtype_tuples_list = [
+    ('char', 'Text Box'),
+    ('email', 'Email Text Box'),
+    ('photo', 'Photo Upload'),
+    ('video', 'Video Link Text Box'),
+    ('location', 'Location Text Box'),
+    ('integer', 'Integer Text Box'),
+    ('float', 'Decimal Text Box'),
+    ('bool', 'Checkbox'),
+    ('text', 'Text Area'),
+    ('select', 'Drop Down List'),
+    ('choice', 'Radio Button List'),
+    ('bool_list', 'Checkbox List'),
+    ('numeric_select', 'Numeric Drop Down List'),
+    ('numeric_choice', 'Numeric Radio Button List')
+]
 
-OPTION_TYPE_CHOICES = ChoiceEnum(sorted([('char', 'Text Box'),
-                                         ('email', 'Email Text Box'),
-                                         ('photo', 'Photo Upload'),
-                                         ('video', 'Video Link Text Box'),
-                                         ('location', 'Location Text Box'),
-                                         ('integer', 'Integer Text Box'),
-                                         ('float', 'Decimal Text Box'),
-                                         ('bool', 'Checkbox'),
-                                         ('text', 'Text Area'),
-                                         ('select', 'Drop Down List'),
-                                         ('choice', 'Radio Button List'),
-                                         ('bool_list', 'Checkbox List'),
-                                         ('numeric_select',
-                                          'Numeric Drop Down List'),
-                                         ('numeric_choice',
-                                          'Numeric Radio Button List')],
-                                        key=itemgetter(1)))
+OPTION_TYPE_CHOICES = ChoiceEnum(sorted(qtype_tuples_list, key=itemgetter(1)))
+
+#Factor in the setting that can be used to hide some of these question types
+for disable in SURVEY_QTYPE_DISABLE:
+    remove_by_lambda(qtype_tuples_list, lambda x: x[1].lower() == disable.lower())
+
+OPTION_TYPE_CHOICES_FILTERED = ChoiceEnum(sorted(qtype_tuples_list, key=itemgetter(1)))
 
 
 class LiveSurveyManager(models.Manager):
@@ -319,7 +325,7 @@ class Question(models.Model):
         order = models.IntegerField(help_text=POSITION_HELP)
     option_type = models.CharField(
         max_length=max([len(key) for key, v in OPTION_TYPE_CHOICES._choices]),
-        choices=OPTION_TYPE_CHOICES,
+        choices=OPTION_TYPE_CHOICES_FILTERED,
         help_text=_('You must not change this field on a live survey.'))
     # For NUMERIC_(SELECT|CHOICE) use it as an int unless they use a decimal. 
     numeric_is_int = models.BooleanField(default=True, editable=False)

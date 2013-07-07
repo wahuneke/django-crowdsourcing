@@ -38,6 +38,29 @@ class ChoiceEnum(object):
     def getdisplay(self, key):
         return [v[1] for v in self._choices if v[0] == key][0]
 
+def remove_by_lambda(l, lam):
+    """
+    Iterate the given list, remove the first entry in the list
+    where the given lambda function returns True
+
+    Return True from this function if something was found and removed
+    """
+    def find(l,func):
+        """
+        return the index of the first item in list (l) for which
+        the function (func) is True
+        return -1 if not found
+        """
+        for i,item in enumerate(l):
+            if func(item):
+                return i
+        return -1
+    idx = find(l,lam)
+    if idx >= 0:
+        l.pop(idx)
+
+    return idx >= 0
+
 
 """ This is handy for when you don't have sessions or authentication
 middleware. """
