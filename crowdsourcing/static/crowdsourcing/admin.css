@@ -19,3 +19,8 @@ div.field-email textarea {
     width: 200px !important;
 }
 
+ul.tagit {
+    display:inline-block;
+    margin: 0 !important;
+    padding:5px !important;
+}
