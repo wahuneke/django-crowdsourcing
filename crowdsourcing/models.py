@@ -200,6 +200,9 @@ class Survey(models.Model):
             return self.get_fields(fieldnames)
         return [f for f in self.get_fields() if f.answer_is_public]
 
+    def is_valid_fieldname(self, fieldname):
+        return self.questions.filter(fieldname=fieldname).count() > 0
+
     def get_fields(self, fieldnames=None):
         if not "_fields" in self.__dict__:
             questions = self.questions.all()
@@ -946,6 +949,30 @@ class SurveyReport(models.Model):
     # A useful variable for holding different report displays so they don't
     # get saved to the database.
     survey_report_displays = None
+
+    def find_question(self, fieldname):
+        """
+        Given a fieldname (that was specified in one this report's display sections), find the appropriate
+        question from among our survey(s)
+
+        return None if given fieldname is not among our surveys (or if it is ambiguous)
+        """
+        all_my_questions = Question.objects.filter(survey__surveyreport__id__exact=self.id)
+
+        # if fieldname has a period in it, then the first half is a survey slug and
+        # second half is question fieldname
+        # otherwise, it's all just a question fieldname so it had better be unique to the
+        # report's selected surveys
+        if fieldname.count(".") == 1:
+            s_slug, fieldname = fieldname.split(".")
+            matching_questions = all_my_questions.filter(survey__slug=s_slug).filter(fieldname=fieldname)
+        else:
+            matching_questions = all_my_questions.filter(fieldname=fieldname)
+
+        if len(list(matching_questions)) == 1:
+            return matching_questions[0]
+        else:
+            return None
 
     def get_survey_report_displays(self):
         if self.pk and self.survey_report_displays is None:

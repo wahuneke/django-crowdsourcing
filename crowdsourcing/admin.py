@@ -188,6 +188,10 @@ DOWNLOAD = SDTC.DOWNLOAD
 
 
 class SurveyReportDisplayInlineForm(ModelForm):
+    def _is_valid_fieldname(self, fieldname):
+        report = self.cleaned_data.get("report")
+        return not report.find_question(fieldname) is None
+
     def clean(self):
         display_type = self.cleaned_data.get("display_type", "")
         aggregate_type = self.cleaned_data.get("aggregate_type", "")
@@ -219,6 +223,14 @@ class SurveyReportDisplayInlineForm(ModelForm):
             elif display_type == PIE and not is_count:
                 raise ValidationError(_(
                     "Use 'Default' or 'Count' for Pie charts."))
+
+        if fieldnames != "":
+            fieldnames = fieldnames.split(" ")
+            invalid_fields = [f for f in fieldnames if not self._is_valid_fieldname(f)]
+            if invalid_fields:
+                #raise ValidationError(_("You have invalid field(s) in your fieldnames list: %(invalids)") % {'invalids':",".join(invalid_fields)})
+                raise ValidationError(_("You have invalid field(s) in your fieldnames list"))
+
         return self.cleaned_data
 
     class Meta:
