@@ -11,6 +11,7 @@ $(function() {
     $('div.field-fieldnames input').tagit({
         showAutocompleteOnFocus: true,
         allowSpaces: true,
+        singleFieldDelimiter: " ",
         tagSource: function(dummy, response) {
             response(all_survey_fieldnames);
         }
