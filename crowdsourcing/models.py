@@ -7,6 +7,7 @@ from math import sin, cos
 from operator import itemgetter
 import re
 from textwrap import fill
+from crowdsourcing import settings
 
 try:
     import simplejson as json
@@ -751,7 +752,7 @@ BALLOT_STUFFING_FIELDS = ('ip_address', 'session_key',)
 
 class Submission(models.Model):
     survey = models.ForeignKey(Survey)
-    user = models.ForeignKey(User, blank=True, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True)
     ip_address = models.IPAddressField()
     submitted_at = models.DateTimeField(default=datetime.datetime.now)
     session_key = models.CharField(max_length=40, blank=True, editable=False)

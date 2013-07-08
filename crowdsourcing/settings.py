@@ -1,7 +1,9 @@
 import re
 
 from django.conf import settings as _gs
+from django.contrib.auth.models import User
 
+AUTH_USER_MODEL = getattr(_gs,'AUTH_USER_MODEL',User)
 
 """ This sets the default "Moderate submissions" value of surveys. """
 MODERATE_SUBMISSIONS = getattr(_gs,
