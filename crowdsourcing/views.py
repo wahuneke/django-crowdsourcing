@@ -8,6 +8,7 @@ import logging
 import smtplib
 from xml.dom.minidom import Document
 #from Tools.Scripts.classfix import rep
+import django.views.generic
 
 from django.conf import settings
 from django.contrib.sites.models import Site
