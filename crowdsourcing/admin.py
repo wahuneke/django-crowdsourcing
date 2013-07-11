@@ -84,7 +84,8 @@ class SurveyAdminForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super(SurveyAdminForm, self).__init__(*args, **kwargs)
         qs = SurveyReport.objects.filter(survey=self.instance)
-        self.fields['default_report'].queryset = qs
+        if 'default_report' in self.fields:
+            self.fields['default_report'].queryset = qs
         if 'flickr_group_name' in self.fields:
             self.fields['flickr_group_name'].widget = Select(choices=_flickr_group_choices())
 
@@ -224,12 +225,16 @@ class SurveyReportDisplayInlineForm(ModelForm):
                 raise ValidationError(_(
                     "Use 'Default' or 'Count' for Pie charts."))
 
-        if fieldnames != "":
-            fieldnames = fieldnames.split(" ")
-            invalid_fields = [f for f in fieldnames if not self._is_valid_fieldname(f)]
-            if invalid_fields:
-                #raise ValidationError(_("You have invalid field(s) in your fieldnames list: %(invalids)") % {'invalids':",".join(invalid_fields)})
-                raise ValidationError(_("You have invalid field(s) in your fieldnames list"))
+        # CANT do this. works great most of the time but does not work if you are modifying
+        # an existing report and you change the list of surveys it's based on and then go
+        # and change the fielnames... perhaps this display model still points to a report
+        # object that is not yet updated to have the correct set of surveys in it.
+        #
+        # if fieldnames != "":
+        #     fieldnames = fieldnames.split(" ")
+        #     invalid_fields = [f for f in fieldnames if not self._is_valid_fieldname(f)]
+        #     if invalid_fields:
+        #         raise ValidationError(_("You have invalid field(s) in your fieldnames list"))
 
         return self.cleaned_data
 

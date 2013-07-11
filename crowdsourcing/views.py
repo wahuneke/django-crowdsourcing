@@ -639,6 +639,8 @@ class SurveyReportView(django.views.generic.TemplateView):
         context['display_individual_results'] = all([
             report_obj.display_individual_results,
             context['archive_fields'] or (user_is_staff and context['fields'])])
+        context['report'] = report_obj
+        context['request'] = self.request
 
         return context
 

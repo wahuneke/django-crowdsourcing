@@ -68,7 +68,7 @@ class BaseAnswerForm(Form):
         bound_fields = [BoundField(self, field, name) \
                       for name, field in self.fields.items()]
         c = Context(dict(form=self, bound_fields=bound_fields))
-        t = loader.get_template('forms/form.html')
+        t = loader.get_template('crowdsourcing/forms/form.html')
         return t.render(c)
 
     def save(self, commit=True):

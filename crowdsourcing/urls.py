@@ -79,28 +79,28 @@ urlpatterns = patterns(
     # Survey reports
     # --------------
 
-    url(r'^r/(?P<slug>[-a-z0-9_]+)/api/report/$',
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/api/$',
         embeded_survey_report,
         {"report": ""},
         name="embeded_survey_report_default"),
 
-    url(r'^r/(?P<slug>[-a-z0-9_]+)/api/report/(?P<report>[-a-z0-9_]+)/$',
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/api/$',
         embeded_survey_report,
         name="embeded_survey_report"),
 
-    url(r'^r/(?P<slug>[-a-z0-9_]+)/report/$',
+    url(r'^s/(?P<slug>[-a-z0-9_]+)/report/$',
         SurveyReportView.as_view(),
         name="survey_default_report_page_1"),
 
-    url(r'^r/(?P<slug>[-a-z0-9_]+)/report/(?P<page>\d+)/$',
+    url(r'^s/(?P<slug>[-a-z0-9_]+)/report/(?P<page>\d+)/$',
         SurveyReportView.as_view(),
         name="survey_default_report"),
 
-    url(r'^r/(?P<slug>[-a-z0-9_]+)/(?P<report>[-a-z0-9_]+)/$',
+    url(r'^r/(?P<slug>[-a-z0-9_]+)$',
         SurveyReportView.as_view(),
         name="survey_report_page_1"),
 
-    url(r'^r/(?P<slug>[-a-z0-9_]+)/(?P<report>[-a-z0-9_]+)/(?P<page>\d+)/$',
+    url(r'^r/(?P<slug>[-a-z0-9_]+)/(?P<page>\d+)/$',
         SurveyReportView.as_view(),
         name="survey_report")
     )

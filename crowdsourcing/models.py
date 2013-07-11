@@ -182,10 +182,13 @@ class Survey(models.Model):
 
     @property
     def is_open(self):
+        # There is a problem here unless project settings set USE_TZ to false
+        # After that there's still a problem since there will be a difference of about 5 hours
         now = datetime.datetime.now()
         if self.ends_at:
             return self.starts_at <= now < self.ends_at
-        return self.starts_at <= now
+        # TODO: take out this temporary fix
+        return self.starts_at.date() <= now.date()
 
     @property
     def is_live(self):
@@ -211,7 +214,7 @@ class Survey(models.Model):
             self.__dict__["_fields"] = list(questions.order_by("order"))
         fields = self.__dict__["_fields"]
         if fieldnames:
-            return [f for f in fields if f.fieldname in fieldnames]
+            return [f for f in fields if f.fieldname in fieldnames or f.fieldname_longform in fieldnames]
         return fields
 
     def get_public_archive_fields(self):
@@ -264,10 +267,10 @@ class Survey(models.Model):
     def featured_submissions(self):
         return self.public_submissions().filter(featured=True)
 
-    def get_filters(self):
-        return self.questions.filter(use_as_filter=True,
-                                     answer_is_public=True,
-                                     option_type__in=FILTERABLE_OPTION_TYPES)
+    # def get_filters(self):
+    #     return self.questions.filter(use_as_filter=True,
+    #                                  answer_is_public=True,
+    #                                  option_type__in=FILTERABLE_OPTION_TYPES)
 
     def __unicode__(self):
         return self.title
@@ -368,6 +371,10 @@ class Question(models.Model):
     answer_is_public = models.BooleanField(default=True)
     use_as_filter = models.BooleanField(default=True)
     _aggregate_result = None
+
+    @property
+    def fieldname_longform(self):
+        return ".".join((self.survey.slug,self.fieldname))
 
     @property
     def is_filterable(self):
@@ -614,17 +621,17 @@ class AggregateResultCount(object):
     pie charts. """
     def __init__(self,
                  survey,
-                 field,
+                 question,
                  request_data,
                  surveyreport=None,
                  is_staff=False):
-        self.answer_set = field.answer_set.none()
+        self.answer_set = question.answer_set.none()
         self.answer_value_lookup = {}
-        if is_staff or field.answer_is_public:
-            self.answer_set = field.public_answers
+        if is_staff or question.answer_is_public:
+            self.answer_set = question.public_answers
             if is_staff:
-                self.answer_set = field.answer_set
-            self.answer_set = self.answer_set.values(field.value_column)
+                self.answer_set = question.answer_set
+            self.answer_set = self.answer_set.values(question.value_column)
             self.answer_set = self.answer_set.annotate(count=Count("id"))
             self.answer_set = extra_from_filters(self.answer_set,
                                                  "submission_id",
@@ -634,16 +641,16 @@ class AggregateResultCount(object):
                 self.answer_set = self.answer_set.filter(
                     submission__featured=True)
         for answer in self.answer_set:
-            text = fill(u"%s" % answer[field.value_column], 30)
+            text = fill(u"%s" % answer[question.value_column], 30)
             if answer["count"]:
                 self.answer_value_lookup[text] = {
-                    field.fieldname: text,
+                    question.fieldname: text,
                     "count": answer["count"]}
         # 2-axis aggregate results put the results in the same order as the
         # options, so we do that here as well to make 1-axis graphs like pie
         # charts and simple count bar charts match.
         self.answer_values = []
-        for answer in field.parsed_options:
+        for answer in question.parsed_options:
             value = self.answer_value_lookup.pop(answer, None)
             if value:
                 self.answer_values.append(value)
@@ -1105,9 +1112,11 @@ class SurveyReportDisplay(models.Model):
     def _get_questions(self, fieldnames, fields):
         names = fieldnames.split(" ")
         if fields:
-            return [f for f in fields if f.fieldname in names]
+            return [f for f in fields if f.fieldname in names or f.fieldname_longform in names]
         #TODO: run get_public_fields for all the surveys, add survey slug string on each and call it good
-        return self.get_report().survey.get_public_fields(names)
+        report = self.get_report()
+        flatten = lambda li: reduce(list.__add__, li)
+        return flatten([survey.get_public_fields(names) for survey in report.survey.all()])
 
     def get_report(self):
         if hasattr(self, '_report'):
