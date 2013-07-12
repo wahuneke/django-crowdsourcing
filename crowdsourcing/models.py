@@ -703,12 +703,12 @@ class AggregateResult2Axis(object):
                 "ON y_axis.submission_id = x_axis.submission_id ",
                 "JOIN crowdsourcing_submission AS submission ",
                 "ON submission.id = y_axis.submission_id ",
-                "WHERE submission.is_public = true AND ",
+                "WHERE submission.is_public = 1 AND ",
                 "y_axis.question_id = %s AND ",
                 y_axis_column,
                 " IS NOT NULL AND x_axis.question_id = %s"]
             if report and report.featured:
-                query.append(" AND submission.featured = true")
+                query.append(" AND submission.featured = 1")
             y = "y_axis.submission_id"
             extras = extra_clauses_from_filters(y, x_axis.survey, request_data)
             for where, next_params in extras:
