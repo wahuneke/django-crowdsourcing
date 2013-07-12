@@ -253,7 +253,7 @@ class SurveyReportDisplayInline(admin.StackedInline):
                 'order',),
              #'classes': ('collapse',),
             }),
-        ('Pie, Line, and Bar Charts',
+        ('Line, and Bar Charts',
             {'fields': (
                 'aggregate_type',
                 'x_axis_fieldname',),
