@@ -166,7 +166,7 @@ def _survey_submit(request, survey):
 def _submit_valid_forms(forms, request, survey):
     if not all(form.is_valid() for form in forms):
         return False
-    submission_form = forms[0]
+    submission_form = forms[-1]
     submission = submission_form.save(commit=False)
     submission.survey = survey
     submission.ip_address = _get_remote_ip(request)
@@ -174,7 +174,7 @@ def _submit_valid_forms(forms, request, survey):
     if get_user(request).is_authenticated():
         submission.user = get_user(request)
     submission.save()
-    for form in forms[1:]:
+    for form in forms[0:-1]:
         answer = form.save(commit=False)
         if isinstance(answer, (list, tuple)):
             for a in answer:
