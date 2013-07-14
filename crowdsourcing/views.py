@@ -294,11 +294,11 @@ def survey_detail(request, slug):
     if _can_show_form(request, survey):
         if request.method == 'POST':
             return _survey_submit(request, survey)
-        submission = None
-        if request.user.is_volunteer():
-            vol = request.user.volunteeruser
-            submission = vol.latest_submission_for(survey)
-        existing_submission = request.user
+        # Does this survey allow you to go back and change your existing answers?
+        if survey.allow_response_change:
+            submission = survey.latest_submission_for(request.user)
+        else:
+            submission = None
         forms = forms_for_survey(survey, request, submission)
     elif need_login:
         forms = ()

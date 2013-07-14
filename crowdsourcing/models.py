@@ -115,6 +115,9 @@ class Survey(models.Model):
     allow_voting = models.BooleanField(
         default=False,
         help_text="Users can vote on submissions.")
+    allow_response_change = models.BooleanField(
+        default=False,
+        help_text="Users can reload the same survey, see their old responses, and make adjustments")
     archive_policy = models.IntegerField(
         choices=ARCHIVE_POLICY_CHOICES,
         default=ARCHIVE_POLICY_CHOICES.IMMEDIATE,
@@ -149,6 +152,16 @@ class Survey(models.Model):
         help_text=("Whenever we automatically generate a link to the results "
                    "of this survey we'll use this report. If it's left blank, "
                    "we'll use the default report behavior."))
+
+    def latest_submission_for(self, user):
+        """
+        @type survey: User
+        """
+        latest = self.submission_set.filter(user=user).order_by('-submitted_at')[:1]
+        if latest:
+            return latest[0]
+        else:
+            return None
 
     def to_jsondata(self):
         kwargs = {'slug': self.slug}
