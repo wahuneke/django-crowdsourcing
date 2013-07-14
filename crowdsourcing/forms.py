@@ -53,6 +53,17 @@ class BaseAnswerForm(Form):
         self.submission = submission
         super(BaseAnswerForm, self).__init__(*args, **kwargs)
         self._configure_answer_field()
+        self.populate_from_submission()
+
+
+    def populate_from_submission(self):
+        if self.submission is None:
+            return
+        answers = self.submission.get_question_answers(self.question)
+        # override this for answer types that can have multiple answer records
+        # per submission per question
+        if len(answers) == 1:
+            self.fields['answer'].initial = answers[0].value
 
     def _configure_answer_field(self):
         answer = self.fields['answer']
@@ -227,6 +238,11 @@ class OptionRadio(BaseOptionAnswer):
 class OptionCheckbox(BaseOptionAnswer):
     answer = MultipleChoiceField(widget=CheckboxSelectMultiple)
 
+    def populate_from_submission(self):
+        if self.submission is None:
+            return
+        answers = self.submission.get_question_answers(self.question)
+        self.fields['answer'].initial = [x.value for x in answers]
 
 # Each question gets a form with one element determined by the type for the
 # answer.
@@ -272,10 +288,12 @@ def forms_for_survey(survey, request='testing', submission=None):
         session_key = get_session(request).session_key.lower()
     post = None if testing else request.POST or None
     files = None if testing else request.FILES or None
-    main_form = SubmissionForm(survey, data=post, files=files)
-    return [main_form] + [
-        _form_for_question(q, session_key, submission, post, files)
-        for q in survey.questions.all().order_by("order")]
+    if submission:
+        main_form = SubmissionForm(survey, data=post, files=files, instance=submission)
+    else:
+        main_form = SubmissionForm(survey, data=post, files=files)
+    return [_form_for_question(q, session_key, submission, post, files)
+        for q in survey.questions.all().order_by("order")] + [main_form]
 
 
 def _form_for_question(question,

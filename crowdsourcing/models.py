@@ -765,6 +765,9 @@ class Submission(models.Model):
     session_key = models.CharField(max_length=40, blank=True, editable=False)
     featured = models.BooleanField(default=False)
 
+    def get_question_answers(self, question):
+        return self.answer_set.filter(question=question)
+
     # for moderation
     is_public = models.BooleanField(
         default=True,

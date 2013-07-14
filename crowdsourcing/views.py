@@ -294,7 +294,12 @@ def survey_detail(request, slug):
     if _can_show_form(request, survey):
         if request.method == 'POST':
             return _survey_submit(request, survey)
-        forms = forms_for_survey(survey, request)
+        submission = None
+        if request.user.is_volunteer():
+            vol = request.user.volunteeruser
+            submission = vol.latest_submission_for(survey)
+        existing_submission = request.user
+        forms = forms_for_survey(survey, request, submission)
     elif need_login:
         forms = ()
         if crowdsourcing_settings.LOGIN_AUTOREDIRECT:
