@@ -152,8 +152,12 @@ def _survey_submit(request, survey):
                                    'crowdsourcing/already_submitted.html'],
                                   dict(survey=survey),
                                   _rc(request))
+    if survey.allow_response_change:
+        submission = survey.latest_submission_for(request.user)
+    else:
+        submission = None
 
-    forms = forms_for_survey(survey, request)
+    forms = forms_for_survey(survey, request, submission)
 
     if _submit_valid_forms(forms, request, survey):
         if survey.can_have_public_submissions():

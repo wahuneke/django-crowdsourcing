@@ -87,6 +87,11 @@ class BaseAnswerForm(Form):
             if self.fields['answer'].required:
                 raise ValidationError, _('This field is required.')
             return
+        # dont wind up recording answers multiple times for the same question
+        # in the same submission (which can happen for surveys where it is enabled
+        # to resubmit the survey (change your answers)
+        if self.submission:
+            self.submission.get_question_answers(self.question).delete()
         ans = Answer()
         if self.submission:
             ans.submission = self.submission
@@ -220,7 +225,7 @@ class BaseOptionAnswer(BaseAnswerForm):
                 self.fields['answer_arbitrary'].initial = val
             else:
                 self.fields['answer'].initial,dummy = self.make_choice(val)
-        else:
+        elif len(answers) == 1:
             self.fields['answer'].initial,dummy = self.make_choice(answers[0].value)
 
     def clean_answer(self):
@@ -236,6 +241,11 @@ class BaseOptionAnswer(BaseAnswerForm):
 
     def save(self, commit=True):
         ans_list = []
+        # dont wind up recording answers multiple times for the same question
+        # in the same submission (which can happen for surveys where it is enabled
+        # to resubmit the survey (change your answers)
+        if self.submission:
+            self.submission.get_question_answers(self.question).delete()
         for text in self.cleaned_data['answer']:
             ans = Answer()
             if self.submission:
