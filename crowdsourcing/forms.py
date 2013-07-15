@@ -64,8 +64,6 @@ class BaseAnswerForm(Form):
         # per submission per question
         if len(answers) == 1:
             self.fields['answer'].initial = answers[0].value
-        if len(answers) == 1 and 'answer_arbitrary' in self.fields:
-            self.fields['answer_arbitrary'].initial = 'yo'
 
     def _configure_answer_field(self):
         answer = self.fields['answer']
@@ -189,11 +187,7 @@ class BaseOptionAnswer(BaseAnswerForm):
         options = self.question.parsed_options
         # appendChoiceButtons in survey.js duplicates this. jQuery and django
         # use " for html attributes, so " will mess them up.
-        choices = []
-        for x in options:
-            choices.append(
-                (strip_tags(x).replace('&amp;', '&').replace('"', "'").strip(),
-                 mark_safe(x)))
+        choices = [self.make_choice(x) for x in options]
         if not self.question.required and not isinstance(self, OptionCheckbox):
             choices = [('', '---------',)] + choices
         if self.question.allow_arbitrary:
@@ -204,6 +198,30 @@ class BaseOptionAnswer(BaseAnswerForm):
             widget = TextInput(attrs={'arb_boundto':choice_control_name,'arb_choice':'arbitrary_answer','class':'arbitrary_textbox'})
             self.fields['answer_arbitrary'] = CharField(label="", widget=widget, required=False)
         self.populate_from_submission()
+
+    def make_choice(self, str):
+        """
+        Convert given option string into a key,value tuple suitable for use as option value
+        """
+        key = strip_tags(str).replace('&amp;', '&').replace('"', "'").strip()
+        val = mark_safe(str)
+        return key, val
+
+    def populate_from_submission(self):
+        if self.submission is None:
+            return
+        answers = self.submission.get_question_answers(self.question)
+        if len(answers) == 1 and 'answer_arbitrary' in self.fields:
+            val = answers[0].value
+            # If val is not one of our standard options, then it must mean the
+            # user has chosen the 'arbitrary option'
+            if not any([x[1] == val for x in self.fields['answer'].choices]):
+                self.fields['answer'].initial = 'arbitrary_answer'
+                self.fields['answer_arbitrary'].initial = val
+            else:
+                self.fields['answer'].initial,dummy = self.make_choice(val)
+        else:
+            self.fields['answer'].initial,dummy = self.make_choice(answers[0].value)
 
     def clean_answer(self):
         key = self.cleaned_data['answer']
@@ -245,8 +263,14 @@ class OptionCheckbox(BaseOptionAnswer):
         if self.submission is None:
             return
         answers = self.submission.get_question_answers(self.question)
-        self.fields['answer'].initial = [x.value for x in answers]
-        self.fields['answer_arbitrary'].initial = 'hii'
+        self.fields['answer'].initial = [self.make_choice(x.value)[0] for x in answers]
+        if 'answer_arbitrary' in self.fields:
+            # Is there an answer that is not among the pre-written choices?
+            # if so, put that one in the arbitrary field
+            arbitrary_val = [x.value for x in answers if not x.value in self.question.parsed_options]
+            if len(arbitrary_val) > 0:
+                self.fields['answer_arbitrary'].initial = arbitrary_val[0]
+                self.fields['answer'].initial.append('arbitrary_answer')
 
 # Each question gets a form with one element determined by the type for the
 # answer.
