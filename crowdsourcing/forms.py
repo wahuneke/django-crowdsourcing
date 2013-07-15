@@ -64,6 +64,8 @@ class BaseAnswerForm(Form):
         # per submission per question
         if len(answers) == 1:
             self.fields['answer'].initial = answers[0].value
+        if len(answers) == 1 and 'answer_arbitrary' in self.fields:
+            self.fields['answer_arbitrary'].initial = 'yo'
 
     def _configure_answer_field(self):
         answer = self.fields['answer']
@@ -201,6 +203,7 @@ class BaseOptionAnswer(BaseAnswerForm):
             choice_control_name = self.add_prefix('answer')
             widget = TextInput(attrs={'arb_boundto':choice_control_name,'arb_choice':'arbitrary_answer','class':'arbitrary_textbox'})
             self.fields['answer_arbitrary'] = CharField(label="", widget=widget, required=False)
+        self.populate_from_submission()
 
     def clean_answer(self):
         key = self.cleaned_data['answer']
@@ -243,6 +246,7 @@ class OptionCheckbox(BaseOptionAnswer):
             return
         answers = self.submission.get_question_answers(self.question)
         self.fields['answer'].initial = [x.value for x in answers]
+        self.fields['answer_arbitrary'].initial = 'hii'
 
 # Each question gets a form with one element determined by the type for the
 # answer.
