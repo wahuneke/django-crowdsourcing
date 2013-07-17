@@ -13,6 +13,7 @@ from .views import (allowed_actions,
                     submission,
                     submission_for_map,
                     survey_detail,
+                    survey_completed,
                     #survey_report,
                     SurveyReportView,
                     )
@@ -63,6 +64,10 @@ urlpatterns = patterns(
     url(r'^s/(?P<slug>[-a-z0-9_]+)/$',
         survey_detail,
         name="survey_detail"),
+
+    url(r'^s/(?P<slug>[-a-z0-9_]+)/done$',
+        survey_completed,
+        name="survey_completed"),
 
     url(r'^s/(?P<slug>[-a-z0-9_]+)/api/allowed_actions/$',
         allowed_actions,

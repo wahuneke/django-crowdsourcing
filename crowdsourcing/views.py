@@ -284,6 +284,14 @@ def _can_show_form(request, survey):
         authenticated or not survey.require_login,
         not _entered_no_more_allowed(request, survey)))
 
+def survey_completed(request, slug):
+    """
+    Sometimes, instead of going straight to the survey report page after
+    completing the survey, we want to view a simple survey complete acknowledgement
+    page.
+    """
+    survey = _get_survey_or_404(slug, request)
+    return render_to_response(('crowdsourcing/survey_completed.html','survey_completed.html'), dict(survey=survey), _rc(request))
 
 def survey_detail(request, slug):
     """ When you load the survey, this view decides what to do. It displays
@@ -342,8 +350,11 @@ def _survey_results_redirect(request, survey, thanks=False):
 
 
 def _survey_report_url(survey):
-    return reverse('survey_default_report_page_1',
-                   kwargs={'slug': survey.slug})
+    if survey.default_report is None:
+        return reverse('survey_completed', kwargs={'slug': survey.slug})
+    else:
+        return reverse('survey_default_report_page_1',
+                       kwargs={'slug': survey.slug})
 
 
 @api_response_decorator()
