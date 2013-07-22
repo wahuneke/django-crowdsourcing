@@ -680,6 +680,11 @@ class AggregateResult2Axis(object):
         request_data,
         aggregate_function,
         report):
+        """
+        @type y_axes: list of Question
+        @type x_axes: Question
+        @type report: SurveyReport
+        """
         self.answer_values = []
         answer_value_lookup = {}
 
@@ -698,40 +703,76 @@ class AggregateResult2Axis(object):
 
         x_value_column = "x_axis." + x_axis.value_column
         for y_axis in y_axes:
-            params = [y_axis.id, x_axis.id]
             y_axis_column = y_axis.value_column
             if "boolean_answer" == y_axis_column:
                 y_axis_column = "CAST(y_axis." + y_axis_column + " AS int)"
             else:
                 y_axis_column = "y_axis." + y_axis_column
-            query = [
-                "SELECT ",
-                x_value_column,
-                " AS x_value, ",
-                aggregate_function,
-                "(",
-                y_axis_column,
-                ") AS y_value FROM crowdsourcing_answer AS y_axis ",
-                "JOIN crowdsourcing_answer AS x_axis "
-                "ON y_axis.submission_id = x_axis.submission_id ",
-                "JOIN crowdsourcing_submission AS submission ",
-                "ON submission.id = y_axis.submission_id ",
-                "WHERE submission.is_public = 1 AND ",
-                "y_axis.question_id = %s AND ",
-                y_axis_column,
-                " IS NOT NULL AND x_axis.question_id = %s"]
+
+            # Are the x and y axis from different surveys?
+            two_surveys = x_axis.survey != y_axis.survey
+
+            # we'll be producing an x value and y value based on some
+            select = ("%s AS x_value" % (x_value_column,),
+                      "%s(%s) AS y_value" % (aggregate_function, y_axis_column))
+            select = ", ".join(select)
+
+            # if in 'normal operation' and only a single survey is being used in this report, then join on the
+            # subisssion id
+            # Bring in the submission (or bring in two submissions, one for x and one for y, if we have two diff surveys)
+            if not two_surveys:
+                # One table for x value and one for y_value
+                # This is the innermost join
+                # also bring in information about the submission (public, featured, etc) as the outermost join
+                inner_from = "crowdsourcing_answer AS y_axis JOIN crowdsourcing_answer as x_axis"
+                inner_from_on = "y_axis.submission_id = x_axis.submission_id"
+                full_from = "crowdsourcing_submission AS x_submission JOIN (" + inner_from + " ON " + inner_from_on + \
+                            ") ON x_submission.id = x_axis.submission_id"
+
+
+            # Otherwise, join on the id of the submitter (which is far more fragile, e.g many survey submissions do
+            # not have a user id associated with them).  Will have to be careful that we don't try to run this type
+            # of report on surveys where user id is not required
+            else:
+                join_a = """
+                    crowdsourcing_submission AS y_submission JOIN
+                    crowdsourcing_answer AS y_axis ON
+                    y_submission.id = y_axis.submission_id
+                    """
+                join_b = """
+                    crowdsourcing_submission AS x_submission JOIN
+                    crowdsourcing_answer AS x_axis ON
+                    x_submission.id = x_axis.submission_id
+                    """
+                full_from = "(%s) JOIN (%s) ON y_submission.user_id = x_submission.user_id" % (join_a, join_b)
+
+            where = ["y_axis.question_id = %s" % (y_axis.id,),
+                     "x_axis.question_id = %s" % (x_axis.id,),
+                     "%s IS NOT NULL" % (y_axis_column,),
+                     "x_submission.is_public = 1"
+                     ]
+            if two_surveys:
+                where.append("y_submission.is_public = 1")
+
             if report and report.featured:
-                query.append(" AND submission.featured = 1")
-            y = "y_axis.submission_id"
-            extras = extra_clauses_from_filters(y, x_axis.survey, request_data)
-            for where, next_params in extras:
-                query.append(" AND ")
-                query.append(where)
+                where.append("x_submission.featured = 1")
+                if two_surveys:
+                    where.append("y_submission.featured = 1")
+            params = []
+            for clause, next_params in extra_clauses_from_filters("y_axis.submission_id", x_axis.survey, request_data):
+                where.append(clause)
                 params += next_params
-            query.append(" GROUP BY ")
-            query.append(x_value_column)
+
+            group_by = x_value_column
+
+            query = "SELECT %s FROM %s WHERE %s GROUP BY %s" % (select, full_from, " AND ".join(where), group_by)
             cursor = connection.cursor()
-            cursor.execute("".join(query), params)
+            try:
+                cursor.execute(query, params)
+            except Exception as e:
+                print "Exception in query: " + query
+                raise e
+
             found_any = False
             for x_value, y_value in cursor.fetchall():
                 found_any = True
